@@ -4,6 +4,7 @@ import com.example.url.shortner.entity.Url;
 import com.example.url.shortner.service.UrlService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Map;
@@ -21,7 +22,7 @@ public class UrlController {
     public ResponseEntity<?> shortenUrl(@RequestBody Map<String, String> request) {
 
         String originalUrl = request.get("url");
-        String customCode = request.get("customCode");   // ✅ new
+        String customCode = request.get("customCode");
 
         if (originalUrl == null || originalUrl.isBlank()) {
             return ResponseEntity.badRequest()
@@ -29,14 +30,21 @@ public class UrlController {
         }
 
         try {
-            // ✅ Pass customCode to service
             String shortCode = service.createShortUrl(originalUrl, customCode);
 
+            // ✅ Dynamic base URL (works in localhost & Render)
+            String baseUrl = ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .build()
+                    .toUriString();
+
+            String fullShortUrl = baseUrl + "/r/" + shortCode;
+
             return ResponseEntity.ok(
-                    Map.of("shortUrl", "http://localhost:8080/r/" + shortCode)
+                    Map.of("shortUrl", fullShortUrl)
             );
 
-        } catch (RuntimeException e) {
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", e.getMessage()));
         }
@@ -45,32 +53,34 @@ public class UrlController {
     @GetMapping("/r/{shortCode}")
     public ResponseEntity<?> redirect(@PathVariable String shortCode) {
 
-        Url url = service.getUrlByShortCode(shortCode);
+        try {
+            Url url = service.getUrlByShortCode(shortCode);
 
-        if (url == null) {
+            service.incrementClickCount(url);
+
+            return ResponseEntity
+                    .status(302)
+                    .location(URI.create(url.getOriginalUrl()))
+                    .build();
+
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
-
-        service.updateClickCount(url);
-
-        return ResponseEntity
-                .status(302)
-                .location(URI.create(url.getOriginalUrl()))
-                .build();
     }
 
     @GetMapping("/stats/{code}")
     public ResponseEntity<?> getStats(@PathVariable String code) {
 
-        Url url = service.getUrlByShortCode(code);
+        try {
+            Url url = service.getUrlByShortCode(code);
 
-        if (url == null) {
+            return ResponseEntity.ok(Map.of(
+                    "originalUrl", url.getOriginalUrl(),
+                    "clickCount", url.getClickCount()
+            ));
+
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }
-
-        return ResponseEntity.ok(Map.of(
-                "originalUrl", url.getOriginalUrl(),
-                "clickCount", url.getClickCount()
-        ));
     }
 }

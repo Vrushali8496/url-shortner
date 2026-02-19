@@ -15,57 +15,71 @@ public class UrlService {
         this.repository = repository;
     }
 
-    // ✅ Updated method (supports custom code)
     public String createShortUrl(String originalUrl, String customCode) {
+
+        if (originalUrl == null || originalUrl.isBlank()) {
+            throw new IllegalArgumentException("Original URL cannot be empty.");
+        }
+
+        originalUrl = originalUrl.trim();
 
         String shortCode;
 
-        // 1️⃣ If user entered custom code
+        // ✅ If user entered custom code
         if (customCode != null && !customCode.isBlank()) {
 
-            // Validate format (only letters, numbers, _ and - allowed)
+            customCode = customCode.trim();
+
+            // Validate format
             if (!customCode.matches("^[a-zA-Z0-9_-]+$")) {
-                throw new RuntimeException("Invalid custom short code format!");
+                throw new IllegalArgumentException(
+                        "Custom short code can only contain letters, numbers, _ and -"
+                );
             }
 
-            // Check if already exists
+            // Check duplicate
             if (repository.existsByShortCode(customCode)) {
-                throw new RuntimeException("Custom short code already exists!");
+                throw new IllegalArgumentException("Custom short code already exists.");
             }
 
             shortCode = customCode;
 
         } else {
-            // 2️⃣ Generate random short code
+            // ✅ Generate random unique code
             shortCode = generateUniqueCode();
         }
 
         Url url = new Url();
         url.setOriginalUrl(originalUrl);
         url.setShortCode(shortCode);
-        url.setClickCount(0);  // initialize
+        url.setClickCount(0);
 
         repository.save(url);
 
         return shortCode;
     }
 
-    // ✅ Separate method to generate unique random code
+    // ✅ Generates 6 character unique code
     private String generateUniqueCode() {
+
         String shortCode;
 
         do {
-            shortCode = UUID.randomUUID().toString().substring(0, 6);
+            shortCode = UUID.randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .substring(0, 6);
         } while (repository.existsByShortCode(shortCode));
 
         return shortCode;
     }
 
     public Url getUrlByShortCode(String shortCode) {
-        return repository.findByShortCode(shortCode).orElse(null);
+        return repository.findByShortCode(shortCode)
+                .orElseThrow(() -> new IllegalArgumentException("Short URL not found."));
     }
 
-    public void updateClickCount(Url url) {
+    public void incrementClickCount(Url url) {
         url.setClickCount(url.getClickCount() + 1);
         repository.save(url);
     }
