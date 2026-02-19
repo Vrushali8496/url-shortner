@@ -62,7 +62,7 @@ function shortenUrl() {
         return;
     }
 
-    fetch("http://localhost:8080/shorten", {
+    fetch("/shorten" , {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -103,7 +103,7 @@ function shortenUrl() {
 
 function getStats(code) {
 
-    fetch("http://localhost:8080/stats/" + code)
+    fetch("/stats/" + code)
     .then(response => response.json())
     .then(data => {
 
