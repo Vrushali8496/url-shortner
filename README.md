@@ -1,6 +1,6 @@
-# 🔗 Smart URL Shortener
+# 🔗 Smart URL Shortner
 
-A full-stack URL Shortener application built using Spring Boot that allows users to generate short and customizable links with click tracking functionality.
+A full-stack URL Shortner application built using Spring Boot that allows users to generate short and customizable links with click tracking functionality.
 
 This project demonstrates backend development, REST API design, database integration, and frontend interaction.
 
